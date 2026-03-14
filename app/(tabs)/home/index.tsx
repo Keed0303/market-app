@@ -1,112 +1,87 @@
-import { Image } from 'expo-image';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, TextInput, ScrollView, FlatList } from 'react-native';
-import { MagnifyingGlassIcon } from 'react-native-heroicons/outline';
-import { useRouter } from 'expo-router';
+import Geolocation from 'ol/Geolocation';
+import TileLayer from 'ol/layer/Tile';
+import Map from 'ol/Map';
+import { XYZ } from 'ol/source';
+import View from 'ol/View';
+import React, { useEffect } from 'react';
+import { Button, View as RNView, StyleSheet } from 'react-native';
+
 
 const index = () => {
-  const router = useRouter();
+  const map = new Map();
 
-  // Mock data for popular products (swipeable)
-  const popularProducts = [
-    { id: '1', name: 'Fresh Tomatoes', price: '$2.99', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400' },
-    { id: '2', name: 'Organic Apples', price: '$3.49', image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400' },
-    { id: '3', name: 'Bananas', price: '$1.99', image: 'https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=400' },
-    { id: '4', name: 'Carrots', price: '$2.49', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400' },
-  ];
+  const initializeMap = () => {
+    setTimeout(() => {
+      map.setTarget('map');
+      map.setLayers([
+        new TileLayer({
+          source: new XYZ({
+            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+          })
+        })
+      ]);
+      map.setView(
+        new View({
+          center: [0, 0],
+          zoom: 16
+        })
+      );
+    }, 0);
 
-  // Mock data for suggestions (non-swipeable)
-  const suggestionProducts = [
-    { id: '5', name: 'Milk', price: '$4.99', image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400' },
-    { id: '6', name: 'Bread', price: '$2.99', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400' },
-    { id: '7', name: 'Eggs', price: '$5.49', image: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400' },
-    { id: '8', name: 'Cheese', price: '$6.99', image: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=400' },
-  ];
 
-  const renderProductCard = ({ item }: any) => (
-    <TouchableOpacity style={styles.productCard}>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <Text style={styles.productName}>{item.name}</Text>
-      <Text style={styles.productPrice}>{item.price}</Text>
-    </TouchableOpacity>
-  );
+  }
 
-  const renderSuggestionCard = (item: any) => (
-    <TouchableOpacity key={item.id} style={styles.suggestionCard}>
-      <Image source={{ uri: item.image }} style={styles.suggestionImage} />
-      <View style={styles.suggestionInfo}>
-        <Text style={styles.suggestionName}>{item.name}</Text>
-        <Text style={styles.suggestionPrice}>{item.price}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const geolocation = new Geolocation({
+    trackingOptions: {
+      enableHighAccuracy: true,
+    },
+    projection: map.getView().getProjection(),
+  });
+
+  useEffect(() => {
+      initializeMap();
+
+    // Set tracking true
+    geolocation.setTracking(true);
+    
+    // Update map center on change
+    geolocation.on('change', function () {
+      map.getView().setCenter(geolocation.getPosition());
+    });
+  
+
+    return () => {
+      map.setTarget(undefined);
+    };
+  }, []);
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerSubText}>Welcome back,</Text>
-          <Text style={styles.headerText}>Manuel, Nagpala</Text>
-        </View>
-        <View style={styles.headerRight}>
-          {/* Profile Image */}
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(tabs)/home/profile')}>
-            <Image source={require('../../../assets/images/profile.jpg')} style={{ width: 40, height: 40, borderRadius: 20 }} /> 
-          </TouchableOpacity>
-        </View>
-      </View>
+    <RNView style={styles.container}>
+      <RNView id="map" style={{ width: '100%', height: '100%' }} ></RNView>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <MagnifyingGlassIcon size={20} color="#999" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search products..."
-          placeholderTextColor="#999"
+      <RNView style={{ position: 'absolute', zIndex: 2, top: 20, right: 20 }}>
+        <Button 
+          title="Get Current Location"
+          onPress={() => {
+          }} 
         />
-      </View>
-
-      {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Popular Products Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Popular</Text>
-          <FlatList
-            data={popularProducts}
-            renderItem={renderProductCard}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          />
-        </View>
-
-        {/* Suggestion Products Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Suggestions</Text>
-          <View style={styles.suggestionList}>
-            {suggestionProducts.map(renderSuggestionCard)}
-          </View>
-        </View>
-      </ScrollView>
-    </View>
+      </RNView>
+    </RNView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f2f3f7',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
     borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff',
   },
   headerLeft: {
     flex: 1,
@@ -131,7 +106,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -150,7 +125,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionLabel: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
     paddingHorizontal: 16,
@@ -192,7 +167,6 @@ const styles = StyleSheet.create({
   },
   suggestionList: {
     paddingHorizontal: 16,
-    gap: 12,
   },
   suggestionCard: {
     flexDirection: 'row',
